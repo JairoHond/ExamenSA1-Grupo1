@@ -4,68 +4,20 @@ import mysql.connector
 from login import cliente_id
 
 # Función para obtener los préstamos del cliente desde la base de datos
-def obtener_prestamos(id_cliente):
+
+def consultar(query):
     conexion = mysql.connector.connect(
         host="localhost",
         user="root",
         password="",
         database="sa1bd"
     )
-
     cursor = conexion.cursor(dictionary=True)
-    consulta = f"SELECT * FROM prestamo WHERE IdCliente = {id_cliente}"
-    cursor.execute(consulta)
+    cursor.execute(query)
     prestamos = cursor.fetchall()
     conexion.close()
     return prestamos
 
-# Función para obtener los pagos del cliente desde la base de datos
-def obtener_pagos(id_cliente):
-    conexion = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="sa1bd"
-    )
-
-    cursor = conexion.cursor(dictionary=True)
-    consulta = f"SELECT * FROM prestamo WHERE IdCliente = {id_cliente} AND Estado = 1"
-    cursor.execute(consulta)
-    pagos = cursor.fetchall()
-    conexion.close()
-    return pagos
-
-# Función para obtener las reversiones del cliente desde la base de datos
-def obtener_reversiones(id_cliente):
-    conexion = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="sa1bd"
-    )
-
-    cursor = conexion.cursor(dictionary=True)
-    consulta = f"SELECT * FROM prestamo WHERE IdCliente = {id_cliente} AND Estado = 2"
-    cursor.execute(consulta)
-    reversiones = cursor.fetchall()
-    conexion.close()
-    return reversiones
-
-# Función para cambiar el estado de un pago en la base de datos
-def cambiar_estado_pago(id_prestamo, nuevo_estado):
-    conexion = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="sa1bd"
-    )
-
-    cursor = conexion.cursor()
-    cursor.execute(f"UPDATE prestamo SET Estado = {nuevo_estado} WHERE id = {id_prestamo}")
-    conexion.commit()
-    conexion.close()
-
-# Función para mostrar una tabla con los datos proporcionados
 def mostrar_tabla(titulo, datos):
     ventana_tabla = tk.Toplevel()
     ventana_tabla.title(titulo)
@@ -77,9 +29,7 @@ def mostrar_tabla(titulo, datos):
     titulo_label.pack(pady=10)
 
     tabla = ttk.Treeview(frame)
-    tabla["columns"] = ("Id", "IdCliente", "MontoPrestamo", "Cuotas", "MontoCuota", "Estado")
-    tabla.heading("#0", text="ID Préstamo")
-    tabla.heading("Id", text="ID Préstamo")
+    tabla["columns"] = ("IdCliente", "MontoPrestamo", "Cuotas", "MontoCuota", "Estado")
     tabla.heading("IdCliente", text="ID Cliente")
     tabla.heading("MontoPrestamo", text="Monto Préstamo")
     tabla.heading("Cuotas", text="Cuotas")
@@ -87,7 +37,30 @@ def mostrar_tabla(titulo, datos):
     tabla.heading("Estado", text="Estado")
 
     for dato in datos:
-        tabla.insert("", "end", text=dato["id"], values=(dato["id"], dato["IdCliente"], dato["MontoPrestamo"], dato["cuotas"], dato["montocuota"], dato["Estado"]))
+        tabla.insert("", "end",  values=(dato["IdCliente"], dato["MontoPrestamo"], dato["cuotas"], dato["montocuota"], dato["Estado"]))
+
+    def mostrar_tablaPagos(titulo, datos):
+        ventana_tabla = tk.Toplevel()
+        ventana_tabla.title(titulo)
+
+        frame = ttk.Frame(ventana_tabla)
+        frame.pack(pady=10, padx=10)
+
+        titulo_label = tk.Label(frame, text=titulo, font=("Arial", 16))
+        titulo_label.pack(pady=10)
+
+        tabla = ttk.Treeview(frame)
+        tabla["columns"] = ("IdCliente", "IdPrestamo", "Cuota", "Monto", "Fecha","Estado")
+        tabla.heading("IdCliente", text="ID Cliente")
+        tabla.heading("IdPrestamo", text="Prestamo")
+        tabla.heading("Cuota", text="Cuotas")
+        tabla.heading("Monto", text="Monto Cuota")
+        tabla.heading("Fecha", text="Fecha")
+        tabla.heading("Estado", text="Estado")
+
+        for dato in datos:
+            tabla.insert("", "end", values=(
+            dato["IdCliente"], dato["IdPrestamo"], dato["Cuota"], dato["MontoCuota"], dato["Fecha"],dato["Estado"]))
 
     def on_item_selected(event):
         item = tabla.selection()[0]
@@ -108,13 +81,22 @@ def mostrar_tabla(titulo, datos):
 
 # Función para abrir la tabla de préstamos
 def abrir_tabla_prestamos():
-    prestamos = obtener_prestamos(cliente_id)
+    consulta = ("SELECT "
+                "p.IdCliente,"
+                "p.MontoPrestamo,"
+                "p.cuotas,"
+                "p.montocuota,"
+                "p.saldoPendiente,"
+                "e.descripcion AS Estado "
+                "FROM prestamo p "
+                "INNER JOIN estadoprestamo e ON e.Id = p.Estado "
+                "WHERE p.IdCliente = {}".format(id_cliente))
     mostrar_tabla("Préstamos", prestamos)
 
 # Función para abrir la tabla de pagos
 def abrir_tabla_pagos():
     pagos = obtener_pagos(cliente_id)
-    mostrar_tabla("Pagos", pagos)
+    mostrar_tablaPagos("Pagos", pagos)
 
 # Función para abrir la tabla de reversiones
 def abrir_tabla_reversiones():
